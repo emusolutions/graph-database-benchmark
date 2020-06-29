@@ -19,7 +19,7 @@ from tqdm import tqdm
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate graph 500 queries.")
     parser.add_argument(
-        "--nodefile", "-n", type=str, default='graph500_22_unique_node', required=True, help="nodefile"
+        "--nodes-file", "-n", type=str, default='graph500_22_unique_node', required=True, help="nodes file"
     )
     parser.add_argument('--seed', type=int, default=12345,
                         help='the random seed used to generate random deterministic outputs')
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     unique_nodes_list = []
     print("Reading unique node ids")
-    with open(args.nodefile) as f:
+    with open(args.nodes_file) as f:
         for line in tqdm(f.readlines()):
             unique_nodes_list.append(line.strip())
 
@@ -165,7 +165,9 @@ if __name__ == "__main__":
                                                        cmd_category_benchmark)
 
     inputs = {"benchmark": inputs_entry_benchmark}
-    deployment_requirements = {"utilities": { "redisgraph-database-benchmark" : {} }, "benchmark-tool": "redisgraph-database-benchmark", "redis-server": {"modules": {"graph": {}}}}
+    deployment_requirements = {"utilities": {"redisgraph-database-benchmark": {}},
+                               "benchmark-tool": "redisgraph-database-benchmark",
+                               "redis-server": {"modules": {"graph": {}}}}
 
     run_stages = ["benchmark"]
     with open(benchmark_config_file, "w") as setupf:
@@ -182,7 +184,7 @@ if __name__ == "__main__":
                                          total_reads,
                                          total_deletes,
                                          benchmark_repetitions_require_teardown_and_resetup,
-                                        None,
+                                         None,
                                          ["benchmark"]
                                          )
         json.dump(setup_json, setupf, indent=2)

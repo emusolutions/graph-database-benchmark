@@ -1,5 +1,2 @@
-Click>=7.0
-redis>=3.3.8
-requests>=2.22.0
-hdrhistogram
-tqdm
+boto3==1.13.24
+tqdm==4.46.1

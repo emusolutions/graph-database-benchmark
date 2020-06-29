@@ -24,7 +24,7 @@ jobs:
       - run: make queries
 
   benchmark:
-    working_directory: /go/src/github.com/RedisGraph/graph-database-benchmark/benchmark/redisgraph
+#    working_directory: /go/src/github.com/RedisGraph/graph-database-benchmark/benchmark/redisgraph
     machine:
       image: ubuntu-1604:202004-01
     steps:
@@ -32,6 +32,7 @@ jobs:
       - run:
           name: Spin up RedisGraph container with dataset
           command: |
+            cd benchmark/redisgraph
             make dataset_docker
           no_output_timeout: 40m
 

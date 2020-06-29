@@ -5,6 +5,7 @@
 import argparse
 import os
 from tqdm import tqdm
+import boto3
 
 # Read the node input file and translate the input IDs into a contiguous range.
 # Then, read the relation input file and translate all source and destination node IDs
@@ -33,10 +34,13 @@ if __name__ == "__main__":
 
     updated_id = 0
 
-    updated_node_file = open(os.path.join(args.outputdir, args.nodefile+args.output_prefix), 'w')
+    relations_file = os.path.join(args.inputdir, args.relfile)
+    updated_node_filename = os.path.join(args.outputdir, args.nodefile+args.output_prefix)
+    updated_relation_filename = os.path.join(args.outputdir, args.relfile+args.output_prefix)
+
+    updated_node_file = open(updated_node_filename, 'w')
     updated_node_file.write('id\n')  # Output a header row
-    updated_relation_file = open(os.path.join(args.outputdir, args.relfile+args.output_prefix), 'w')
-    updated_relation_file_noheader = open(os.path.join(args.outputdir, args.relfile+args.output_prefix+"_noheader"), 'w')
+    updated_relation_file = open(updated_relation_filename, 'w')
     updated_relation_file.write('src,dest\n')  # Output a header row
     # Map every node ID to its line number
     # and generate an updated node file.
@@ -46,13 +50,10 @@ if __name__ == "__main__":
         for line in tqdm(f, total=num_lines):
             placement[int(line)] = updated_id
             updated_node_file.write('%d\n' % (updated_id))
-            updated_relation_file_noheader.write('%d\n' % (updated_id))
             updated_id += 1
     updated_node_file.close()
-    updated_relation_file_noheader.close()
-
-    num_lines = sum(1 for line in open(os.path.join(args.inputdir, args.relfile)))
-    with open(os.path.join(args.inputdir, args.relfile)) as f:
+    num_lines = sum(1 for line in open(relations_file))
+    with open(relations_file) as f:
         for line in tqdm(f, total=num_lines):
             # Tokenize every line and convert the data to ints
             src, dst = map(int, line.split())

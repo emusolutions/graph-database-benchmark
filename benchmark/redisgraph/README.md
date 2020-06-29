@@ -8,7 +8,6 @@ Currently, RedisGraph benchmark supports two use cases:
 Name | Description and Source | Vertices | Edges
 -- | -- | -- | --
 graph500 | Synthetic Kronecker graph http://graph500.org | 2.4 M | 64 M
-twitter | Twitter user-follower directed graph http://an.kaist.ac.kr/traces/WWW2010.html | 41.6 M | 1.47 B                                                                                                                                                                                                 
 
 ### How to use the benchmark
 
@@ -19,7 +18,7 @@ The easiest way to get and install the benchmark code is to use:
 ```bash
 git clone https://github.com/RedisGraph/graph-database-benchmark.git
 cd graph-database-benchmark/benchmark/redisgraph
-pip install --user -r requirements.txt
+pip install --user -r scripts/requirements.txt
 ```
 
 #### Data retrieval 

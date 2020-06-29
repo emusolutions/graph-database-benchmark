@@ -23,6 +23,9 @@ test: get
 	go fmt ./...
 	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
-queries:
-	wget https://s3.amazonaws.com/benchmarks.redislabs/redisgraph/datasets/k-hop/graph500_s22_nodes.csv
-	python3 scripts/generate_graph500_queries.py --nodes-file graph500_s22_nodes.csv
+dataset:
+	wget https://s3.amazonaws.com/benchmarks.redislabs/redisgraph/datasets/k-hop/graph500_s22_dump.rdb
+	mv graph500_s22_dump.rdb dump.rdb
+	docker run --volume="$PWD/":/data/:rw -p 6379:6379 redislabs/redisgraph:edge  redis-server --loadmodule /usr/lib/redis/modules/redisgraph.so
+
+

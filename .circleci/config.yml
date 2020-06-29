@@ -4,26 +4,46 @@
 #
 version: 2.1
 jobs:
-  build-multiarch-docker:
-    machine:
-      enabled: true
+  build:
+    docker:
+      - image: circleci/golang:1.13
+
+    working_directory: /go/src/github.com/RedisGraph/graph-database-benchmark/benchmark/redisgraph
     steps:
       - checkout
-      - run: |
-          echo "$DOCKER_REDISBENCH_PWD" | base64 --decode | docker login --username $DOCKER_REDISBENCH_USER --password-stdin
-      - run:
-          name: Build
-          command: |
-            make -C benchmark/redisgraph docker-release
-          no_output_timeout: 20m
+      - run: make test
+      - run: bash <(curl -s https://codecov.io/bash) -t ${CODECOV_TOKEN}
+
+  queryset:
+    docker:
+      - image: circleci/golang:1.13
+
+    working_directory: /go/src/github.com/RedisGraph/graph-database-benchmark/benchmark/redisgraph
+    steps:
+      - checkout
+      - run: make queries
+#  build-multiarch-docker:
+#    machine:
+#      enabled: true
+#    steps:
+#      - checkout
+#      - run: |
+#          echo "$DOCKER_REDISBENCH_PWD" | base64 --decode | docker login --username $DOCKER_REDISBENCH_USER --password-stdin
+#      - run:
+#          name: Build
+#          command: |
+#            make -C benchmark/redisgraph docker-release
+#          no_output_timeout: 20m
 
 workflows:
   version: 2
   commit:
     jobs:
-      - build-multiarch-docker:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: master
+      - build
+#    jobs:
+#      - build-multiarch-docker:
+#          filters:
+#            tags:
+#              only: /.*/
+#            branches:
+#              only: master

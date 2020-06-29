@@ -24,14 +24,13 @@ jobs:
       - run: make queries
 
   benchmark:
-    machine:
-      - image: ubuntu-1604:201903-01
     working_directory: /go/src/github.com/RedisGraph/graph-database-benchmark/benchmark/redisgraph
+    machine:
+      image: ubuntu-1604:201903-01
     steps:
       - checkout
-      - run: make dataset
       - run:
-          name: Build
+          name: Spin up RedisGraph container with dataset
           command: |
             make dataset_docker
           no_output_timeout: 40m

@@ -26,11 +26,15 @@ jobs:
   benchmark:
     machine:
       - image: ubuntu-1604:201903-01
-    resource_class: 2xlarge
     working_directory: /go/src/github.com/RedisGraph/graph-database-benchmark/benchmark/redisgraph
     steps:
       - checkout
       - run: make dataset
+      - run:
+          name: Build
+          command: |
+            make dataset_docker
+          no_output_timeout: 40m
 
 #  build-multiarch-docker:
 #    machine:
@@ -51,6 +55,7 @@ workflows:
     jobs:
       - build
       - queryset
+      - benchmark
 #    jobs:
 #      - build-multiarch-docker:
 #          filters:

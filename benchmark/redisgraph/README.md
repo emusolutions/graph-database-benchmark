@@ -12,7 +12,7 @@ make
 # Benchmark
 ## One liner benchmark 
 
-Assuming you have the graph previously populated ( see dataset section ) and  redisgraph-database-benchmark installed, for a default set of 100K queries,  80% 1 hop, 15% 2 hops, 5 % 3 hops queries, run:
+Assuming you have the graph previously populated ( [see dataset section](#dataset) ), the query set file previously generated ( [see query set section](#query-set) ), and  redisgraph-database-benchmark installed, for a default set of 100K queries,  80% 1 hop, 15% 2 hops, 5 % 3 hops queries, run:
 ```
 redisgraph-database-benchmark --input k-hop.redisgraph.commands.BENCH.csv --json-out-file=bench.output.json
 ```
@@ -129,3 +129,5 @@ Generating k-hop queries
 100%|███████████████████████████████████████████████████████████| 100000/100000 [00:00<00:00, 145764.26it/s]
 100%|███████████████████████████████████████████████████████████| 100000/100000 [00:00<00:00, 275907.83it/s]
 ```
+
+At the end you should have a file named `k-hop.redisgraph.commands.BENCH.csv` that you can use as input for redisgraph-database-benchmark.

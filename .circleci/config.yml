@@ -26,7 +26,7 @@ jobs:
   benchmark:
     working_directory: /go/src/github.com/RedisGraph/graph-database-benchmark/benchmark/redisgraph
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-1604:202004-01
     steps:
       - checkout
       - run:

@@ -18,6 +18,14 @@ type processor struct {
 	vanillaCluster *radix.Cluster
 }
 
+func dial(host string, opts ...radix.DialOpt) radix.Conn {
+	c, err := radix.Dial("tcp", host, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
 func (p *processor) Init(workerNumber int, _ bool, totalWorkers int) {
 	var err error = nil
 	if clusterMode {
@@ -30,8 +38,20 @@ func (p *processor) Init(workerNumber int, _ bool, totalWorkers int) {
 
 		}
 	} else {
+		requestTimeout := 90 * time.Second
+		redialInterval := 100 * time.Millisecond
 
-		p.vanillaClient, err = radix.NewPool("tcp", host, 1, radix.PoolPipelineWindow(time.Duration(PoolPipelineWindow*float64(time.Millisecond)), PoolPipelineConcurrency))
+		connFunc := radix.PoolConnFunc(func(string, string) (radix.Conn, error) {
+			return dial(host, radix.DialTimeout(requestTimeout)), nil
+		})
+
+		p.vanillaClient, err = radix.NewPool("tcp",
+			host,
+			1,
+			radix.PoolOnEmptyCreateAfter(redialInterval),
+			radix.PoolPipelineWindow(time.Duration(PoolPipelineWindow*float64(time.Millisecond)), PoolPipelineConcurrency),
+			connFunc,
+		)
 		if err != nil {
 			log.Fatalf("Error preparing for ingestion, while creating new pool. error = %v", err)
 		}

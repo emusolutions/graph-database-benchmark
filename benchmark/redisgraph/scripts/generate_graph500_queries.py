@@ -19,7 +19,7 @@ from tqdm import tqdm
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate graph 500 queries.")
     parser.add_argument(
-        "--nodes-file", "-n", type=str, default='graph500_22_unique_node', required=True, help="nodes file"
+        "--nodes-file", "-n", type=str, default='graph500_s22_nodes.csv', help="nodes file"
     )
     parser.add_argument('--seed', type=int, default=12345,
                         help='the random seed used to generate random deterministic outputs')

@@ -25,11 +25,11 @@ if __name__ == "__main__":
                         help='the random seed used to generate random deterministic outputs')
     parser.add_argument('--graph-key-name', type=str, default="graph500_22",
                         help='the name of the key containing the graph')
-    parser.add_argument('--total-benchmark-commands', type=int, default=100000,
+    parser.add_argument('--total-benchmark-commands', type=int, default=5000,
                         help='the total commands to generate to be issued in the benchmark stage')
     parser.add_argument('--k-hop-depths', type=str, default="1,2,3",
                         help='comma separated full list of K-hop depths to simulate queries for. Needs to have the same number of elements as --k-hop-depths-probability')
-    parser.add_argument('--k-hop-depths-probability', type=str, default="0.8,0.15,0.05",
+    parser.add_argument('--k-hop-depths-probability', type=str, default="0.80,0.15,0.05",
                         help='comma separated probability of the list of  K-hop depths passed via --k-hop-depths. Needs to have the same number of elements as --k-hop-depths')
     parser.add_argument('--test-name', type=str, default="k-hop", help='the name of the test')
     parser.add_argument('--test-description', type=str,

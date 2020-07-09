@@ -78,6 +78,16 @@ redisgraph-bulk-loader graph500_22 --nodes-with-label node graph500_s22_nodes.cs
 redis-cli graph.query graph500_22 "create index on :node(id)"
 ```
 
+#### Expected query plan
+
+```
+10.3.0.50:6379> graph.explain graph500_22 "CYPHER param1=1 MATCH (n)-[*1]->(m) WHERE id(n) =$param1 RETURN count(distinct m);"
+1) "Results"
+2) "    Aggregate"
+3) "        Conditional Traverse | (n)->(m)"
+4) "            NodeByIdSeek | (n)"
+```
+
 ## Query set
 
 The query set file contains queries that count the number of nodes a single start node (seed) is connected to at a certain depth. Specifically for CI test suite, we’ll vary 1, 2, and 3-hops matches, each hop with a specific query percentage, in the following manner:

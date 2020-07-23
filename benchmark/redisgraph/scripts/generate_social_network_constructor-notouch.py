@@ -19,7 +19,7 @@ import sys
 
 
 # create node query
-create_node_query = "CYPHER id={id} coins=891807823 firstName={id} lastName={id} image={id} xp=164 villageXp=859 villageLevel=83 fbId={id} attackableStructures=5 isFtueDone=false boardTotalUpgrades=84 name={id} availableAttacks=10 MERGE (u :User {{id: $id}}) SET u.coins = $coins, u.firstName = $firstName, u.lastName = $lastName, u.image = $image, u.xp = $xp, u.villageXp = $villageXp, u.villageLevel = $villageLevel, u.attackableStructures = $attackableStructures, u.isFtueDone = $isFtueDone, u.boardTotalUpgrades = $boardTotalUpgrades, u.name = $name, u.availableAttacks = $availableAttacks"
+create_node_query = "CYPHER id={id} coins=891807823 firstName={id} lastName={id} image={id} xp=164 villageXp=859 villageLevel=83 fbId={id} attackableStructures=5 isFtueDone=false boardTotalUpgrades=84 name={id} availableAttacks=10 MERGE (u :User {{id: $id, fbId: $id}}) SET u.coins = $coins, u.firstName = $firstName, u.lastName = $lastName, u.image = $image, u.xp = $xp, u.villageXp = $villageXp, u.villageLevel = $villageLevel, u.attackableStructures = $attackableStructures, u.isFtueDone = $isFtueDone, u.boardTotalUpgrades = $boardTotalUpgrades, u.name = $name, u.availableAttacks = $availableAttacks"
 create_relation_query = "CYPHER userId={id} friends=[{ids}] MATCH (u: User {{ id: $userId}}) MATCH (uu :User) WHERE uu.fbId IN $friends WITH u, uu MERGE (uu)-[:fbFriend]->(u)-[:fbFriend]->(uu) RETURN uu.id"
 
 

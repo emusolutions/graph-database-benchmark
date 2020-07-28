@@ -95,6 +95,7 @@ if __name__ == "__main__":
 
     with open(args.person_file) as csvfile:
         spamreader = csv.reader(csvfile, delimiter='|')
+        next(csvreader)
         for row in spamreader:
             ids.append(row[0])
 

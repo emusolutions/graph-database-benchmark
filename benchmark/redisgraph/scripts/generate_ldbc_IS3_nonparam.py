@@ -94,9 +94,9 @@ if __name__ == "__main__":
     print("Reading person file")
 
     with open(args.person_file) as csvfile:
-        spamreader = csv.reader(csvfile, delimiter='|')
+        csvreader = csv.reader(csvfile, delimiter='|')
         next(csvreader)
-        for row in spamreader:
+        for row in csvreader:
             ids.append(row[0])
 
     print("Generating read queries")

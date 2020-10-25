@@ -29,7 +29,7 @@ except OSError:
 updated_id = 0
 
 updated_node_file = open(os.path.join(datadir, nodefile.replace('.', '_')), 'w')
-updated_node_file.write('id\n') # Output a header row
+updated_node_file.write('id\n')  # Output a header row
 updated_relation_file = open(os.path.join(datadir, relfile.replace('.', '_')), 'w')
 updated_seed_file = open(os.path.join(datadir, seedfile.replace('.', '_')), 'w')
 
@@ -56,7 +56,6 @@ with open(os.path.join(inputdir, relfile)) as f:
 
 with open(os.path.join(inputdir, seedfile)) as f:
     updated_seed_file.write(' '.join(str(placement[int(i)]) for i in f.read().split()))
-
 
 updated_node_file.close()
 updated_relation_file.close()

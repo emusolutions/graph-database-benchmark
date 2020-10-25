@@ -1,0 +1,29 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2.1
+jobs:
+  build-multiarch-docker:
+    machine:
+      enabled: true
+    steps:
+      - checkout
+      - run: |
+          echo "$DOCKER_REDISBENCH_PWD" | base64 --decode | docker login --username $DOCKER_REDISBENCH_USER --password-stdin
+      - run:
+          name: Build
+          command: |
+            make -C benchmark/redisgraph docker-release
+          no_output_timeout: 20m
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build-multiarch-docker:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: master

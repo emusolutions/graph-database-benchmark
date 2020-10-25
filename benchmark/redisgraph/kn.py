@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ############################################################
 # Copyright (c)  2015-now, TigerGraph Inc.
 # All rights reserved
@@ -6,13 +8,15 @@
 # acknowledgement to TigerGraph.
 # Author: Mingxi Wu mingxi.wu@tigergraph.com
 ############################################################
-
-import sys
-import os
-import click
+import argparse
 import multiprocessing
-from query_runner import *
+import os
+import sys
 from timeit import default_timer as timer
+
+from hdrh.histogram import HdrHistogram
+
+from query_runner import *
 
 # Global, map of reports.
 seedReports = {}
@@ -32,50 +36,51 @@ def InitSeedReports(seeds, iterations):
 #####################################################################
 # Generate a report summary.
 #######################################################################
-def FinalizeReport(graphid, depth, threads):
-    global seedReports
+def FinalizeReport(seedReports, unique_node_file, depth, threads, debug):
     # seed=19284, k=1, runId=0, avgNeighbor=91.0, execTime=0.197093009949
     # AVG Seed iterations.
 
     output = ''
     avgKNSize = 0
-    avgQueryTime = 0
     threadsTotalRuntime = [0] * threads
     runs = 0
-
-    # map to raw seed id
-    raw_seeds = []
-    if os.path.exists(graphid + '_unique_node'):
-        for line in open(graphid + '_unique_node'):
-            raw_seeds.append(line.strip())
+    histogram = HdrHistogram(1, 1 * 1000 * 1000, 4)
 
     for seed in seedReports:
-        seed_raw = raw_seeds[int(seed)]
         report = seedReports[seed]
         for iterationReport in report:
             avgNeighbor = iterationReport['avgN']
             execTime = iterationReport['totalTime']
             threadId = iterationReport['threadId']
             threadsTotalRuntime[threadId] += execTime
-            output += "seed=%s, k=%d, avgNeighbor=%d, execTime=%f[ms]\r\n" %(seed_raw, depth, avgNeighbor, execTime)
-            output += "**************************************************************\r\n"
+            histogram.record_value(execTime * 1000)
+            if debug is True:
+                output += "seed=%s, k=%d, avgNeighbor=%d, execTime=%f[ms]\r\n" % (seed, depth, avgNeighbor, execTime)
+                output += "**************************************************************\r\n"
 
             avgKNSize += avgNeighbor
-            avgQueryTime += float(execTime)
             runs += 1
 
     avgKNSize /= runs
-    avgQueryTime /= float(runs)
 
     # We're interested in how much time did it took us to compute a single query on average
     # Our total run time equals max(threadsTotalRuntime), and we've completed running
     # N queries.
     totalRuntime = max(threadsTotalRuntime)
 
-    output += "summary : avgKNSize=%f, avgQueryTime=%f[ms], totalRuntime=%f[ms]\r\n" %(avgKNSize, avgQueryTime, totalRuntime)
+    output += "**************************************************************\r\n"
+    output += "Summary : avgKNSize=%f, avgQueryTime=%f[ms], totalRuntime=%f[ms]\r\n" % (
+        avgKNSize, histogram.get_mean_value() / 1000.0,
+        totalRuntime)
+    output += "Latency by percentile : q50=%f[ms], q99=%f[ms], q99.99=%f[ms], q99.9999=%f[ms], \r\n" % (
+        histogram.get_value_at_percentile(50.0) / 1000.0,
+        histogram.get_value_at_percentile(90.0) / 1000.0,
+        histogram.get_value_at_percentile(99.99) / 1000.0,
+        histogram.get_value_at_percentile(99.9999) / 1000.0)
+
     output += "**************************************************************\r\n"
 
-    return output
+    return output, histogram
 
 
 #####################################################################
@@ -101,9 +106,10 @@ def GetSeeds(seed_file_path, count):
 # function: thread worker, pull work item from pool
 # and execute query via runner
 ################################################################
-def RunKNLatencyThread(graphid, threadId, depth, provider, label, seedPool, reportQueue, iterations):
+def RunKNLatencyThread(datadir, graphid, threadId, depth, provider, label, seedPool, reportQueue, iterations, url,
+                       seed):
     if provider == "redisgraph":
-        runner = RedisGraphQueryRunner(graphid, label)
+        runner = RedisGraphQueryRunner(graphid, label, url)
     elif provider == "tigergraph":
         runner = TigerGraphQueryRunner()
     else:
@@ -134,7 +140,7 @@ def RunKNLatencyThread(graphid, threadId, depth, provider, label, seedPool, repo
             iterationTime = -1
         else:
             iterationTime = end - start
-            iterationTime *= 1000 # convert from seconds to ms
+            iterationTime *= 1000  # convert from seconds to ms
 
         iterationSummary['threadId'] = threadId
         iterationSummary['seed'] = seed
@@ -147,19 +153,12 @@ def RunKNLatencyThread(graphid, threadId, depth, provider, label, seedPool, repo
 # function: check the total latency for k-hop-path neighbor count
 # query for a given set of seeds.
 ################################################################
-@click.command()
-@click.option('--graphid', '-g', default='graph500-22',
-              type=click.Choice(['graph500-22', 'twitter_rv_net']), help="graph id")
-@click.option('--count', '-c', default=20, help="number of seeds")
-@click.option('--depth', '-d', default=1, help="number of hops to perform")
-@click.option('--provider', '-p', default='redisgraph', help="graph identifier")
-@click.option('--label', '-l', default='label', help="node label")
-@click.option('--threads', '-t', default=2, help="number of querying threads")
-@click.option('--iterations', '-i', default=10, help="number of iterations per query")
-def RunKNLatency(graphid, count, depth, provider, label, threads, iterations):
-    #create result folder
+
+
+def RunKNLatency(data_dir, graphid, count, depth, provider, label, threads, iterations, url, seed, stdout, rules):
+    # create result folder
     global seedReports
-    seedfile = os.path.join('data', graphid + '-seed')
+    seedfile = os.path.join(data_dir, seed)
     seeds = GetSeeds(seedfile, count)
 
     # Create a pool of seeds.
@@ -177,7 +176,11 @@ def RunKNLatency(graphid, count, depth, provider, label, threads, iterations):
     InitSeedReports(seeds, iterations)
     threadsProc = []
     for tid in range(threads):
-        p = multiprocessing.Process(target=RunKNLatencyThread, args=(graphid, tid, depth, provider, label, seedPool, reportQueue, iterations))
+        p = multiprocessing.Process(target=RunKNLatencyThread,
+                                    args=(
+                                        data_dir, graphid, tid, depth, provider, label, seedPool, reportQueue,
+                                        iterations,
+                                        url, seed))
         threadsProc.append(p)
 
     # Launch threads
@@ -199,17 +202,77 @@ def RunKNLatency(graphid, count, depth, provider, label, threads, iterations):
         seedReports[seed].append({'avgN': avgN, 'totalTime': totalTime, 'threadId': threadId})
 
     print("Finalizing report")
-    output = FinalizeReport(graphid, depth, threads)
-    dirName = "./result_" + provider +"/"
-    fileName = "KN-latency-k%d-threads%d-iter%d" %(depth, threads, iterations)
-    outputPath = os.path.join(dirName, fileName)
+    unique_node_file = os.path.join(data_dir, label)
+    output, hdrhist = FinalizeReport(seedReports, unique_node_file, depth, threads, False)
 
-    if not os.path.exists(dirName):
-        os.makedirs(dirName)
+    if stdout is False:
+        dirName = "./result_" + provider + "/"
+        fileName = "KN-latency-k%d-threads%d-iter%d" % (depth, threads, iterations)
+        outputPath = os.path.join(dirName, fileName)
 
-    with open(outputPath, 'wt') as ofile:
-        ofile.write(output)
+        if not os.path.exists(dirName):
+            os.makedirs(dirName)
+
+        with open(outputPath, 'wt') as ofile:
+            ofile.write(output)
+
+        HDR_LOG_NAME = "latency.hdrhist"
+        hdrPath = os.path.join(dirName, HDR_LOG_NAME)
+        with open(hdrPath, 'wt') as hdr_log:
+            hdrhist.output_percentile_distribution(hdr_log, 1000.0, 10)
+
+    else:
+        hdrhist.output_percentile_distribution(sys.stdout, 1000.0, 10)
+        print output
+
+    for rule_name, rule_value in rules.items():
+        quantile = float(rule_name)
+        quantile_value = hdrhist.get_value_at_percentile(quantile) / 1000
+        if quantile_value > rule_value:
+            print "Failing due to quantile {} latency value {}ms being larger than allowed ({})".format(quantile,
+                                                                                                        quantile_value,
+                                                                                                        rule_value)
+            sys.exit()
 
 
 if __name__ == '__main__':
-    RunKNLatency()
+    parser = argparse.ArgumentParser(description="check the total latency for k-hop-path neighbor count.")
+    parser.add_argument(
+        "--graphid", "-g", type=str, default='graph500_22', help="graph id"
+    )
+    parser.add_argument(
+        "--count", "-c", type=int, default=1, help="number of seeds"
+    )
+    parser.add_argument(
+        "--depth", "-d", type=int, default=1, help="number of hops to perform"
+    )
+    parser.add_argument(
+        "--provider", "-p", type=str, default="redisgraph", help="graph identifier"
+    )
+    parser.add_argument(
+        "--url", "-u", type=str, default="127.0.0.1:6379", help="DB url"
+    )
+    parser.add_argument(
+        "--label", "-l", type=str, default="graph500_22_unique_node", help="node label"
+    )
+    parser.add_argument(
+        "--seed", "-s", type=str, default="seed", help="seed file"
+    )
+    parser.add_argument(
+        "--data_dir", type=str, default="data", help="data dir"
+    )
+    parser.add_argument(
+        "--threads", "-t", type=int, default=1, help="number of querying threads"
+    )
+    parser.add_argument(
+        "--iterations", "-i", type=int, default=1, help="number of iterations per query"
+    )
+    parser.add_argument('--stdout', dest='stdout', action='store_true', help="print report to stdout")
+    parser.add_argument(
+        "--fail_q50", type=float, default=sys.float_info.max, help="Fail if overall latency q50 above threshold"
+    )
+
+    args = parser.parse_args()
+    rules = {'50.0': args.fail_q50}
+    RunKNLatency(args.data_dir, args.graphid, args.count, args.depth, args.provider, args.label, args.threads,
+                 args.iterations, args.url, args.seed, args.stdout, rules)

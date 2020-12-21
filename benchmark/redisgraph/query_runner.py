@@ -44,8 +44,21 @@ class RedisGraphQueryRunner(QueryRunner):
 
     def KN(self, root, depth):
         try:
-            query = "MATCH (s:%s)-[*%d]->(t) WHERE s.id=%d RETURN count(t)" % (self.label, int(depth), int(root))
+            #query = "MATCH (s:%s)-[*%d]->(t) WHERE s.id=%d RETURN count(t)" % (self.label, int(depth), int(root))
+            #skk Work around the endianness issue in RedisSearch by eliminating the label on s.
+            query = "MATCH (s)-[*%d]->(t) WHERE s.id=%d RETURN count(t)" % ( int(depth), int(root))
             result = self.driver.execute_command('graph.query', self.graphid, query)
+            #skk Added prints for comparison
+            print("Query '%s'" % (query))
+            if len(result[1]) > 0:
+                print("Count %s" % (result[1][0][0]))
+            else:
+                print("Count 0")
+            print(result[2][0])
+            print(result[2][1])
+            print
+            #skk
+            
         except Exception as e:  # timeout, we return -1, reset session
             print("Query '%s' resulted in Exception: %s" % (query,e))
             raise e
